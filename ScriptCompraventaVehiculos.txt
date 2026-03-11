@@ -1,0 +1,223 @@
+create database Compraventa_vehiculos
+use Compraventa_vehiculos
+
+create table Vehiculo
+(
+Placa varchar(7) primary key,
+Marca varchar(50) not null,
+Modelo varchar (30) not null,
+AñoVehiculo int not null,
+Precio int not null,
+Tipo varchar(10) not null,
+Disponibilidad Char(2) not null
+)
+
+create table DetalleDeCompra
+(
+NumCompra int identity(10,1) primary key ,
+Fecha smalldatetime not null,
+NombreComprador varchar(50) not null,
+CedulaComprador varchar(20) not null,
+CelularComprador varchar(15) not null,
+Placa varchar(7) not null,
+Precio int not null,
+FOREIGN KEY (Placa) REFERENCES Vehiculo(Placa) ON UPDATE CASCADE
+)
+
+Create trigger Disponibilidad
+ON DetalleDeCompra
+AFTER INSERT, DELETE
+AS
+BEGIN
+   
+    UPDATE Vehiculo
+    SET Disponibilidad = 'No'
+    WHERE Placa IN (SELECT Placa FROM inserted);
+
+   
+    UPDATE Vehiculo
+    SET Disponibilidad = 'Si'
+    WHERE Placa IN (SELECT Placa FROM deleted)
+      AND Placa NOT IN (SELECT Placa FROM DetalleDeCompra);
+END;
+
+
+
+insert into Vehiculo values ('EMT132', 'Kia', 'Sportage', 2020, 45000000, 'Camioneta', 'Si')
+insert into Vehiculo values ('EST325', 'Renault', 'Twingo', 2010, 17000000, 'Automóvil', 'Si')
+insert into Vehiculo values ('EMY895', 'Toyota', 'Land Cruiser Prado', 2023, 280000000, 'Campero', 'Si')
+insert into Vehiculo values ('EST785', 'Mercedes', ' Benz Clase', 2023, 145000000, 'Automovil', 'Si')
+
+Insert into DetalleDeCompra values ('2024-08-06', 'Juan Perez', '43995457', '3108765432','EMT132', 45000000)
+Insert into DetalleDeCompra values ('2024-13-06', 'Santiago Ramirez', '48765456', '3123456564','EST325', 45000000)
+
+
+
+select *
+from Vehiculo
+
+select*
+from DetalleDeCompra
+
+
+Update Vehiculo set placa = 'EWQ654' where Placa = 'EMY895'
+Update Vehiculo set placa = 'XMI750' where Placa = 'EST325'
+
+
+
+-- P. A para guardar un vehiculo
+create procedure spAddVehicle
+@Placa varchar(7),
+@Marca varchar(50),
+@Modelo varchar (30),
+@AñoVehiculo int,
+@Precio int,
+@Tipo varchar(10),
+@Disponibilidad Char(2)
+As
+Begin
+insert into Vehiculo (Placa, Marca, Modelo, AñoVehiculo, Precio, Tipo, Disponibilidad) values
+(@Placa, @Marca, @Modelo, @AñoVehiculo, @Precio, @Tipo, @Disponibilidad)
+End
+
+Execute spAddVehicle 'QTR340', 'Hyundai' , 'Tucson', 2024, 115000000, 'Camioneta', 'Si'
+Execute spAddVehicle 'QUY871', 'Chevrolet' , 'Tracker', 2014, 35500000, 'Camioneta', 'Si'
+Execute spAddVehicle 'MTU982', 'Daihatsu' , 'F-150', 1999, 30000000, 'Campero', 'Si'
+Execute spAddVehicle 'MMU212', 'Suzuki' , 'Jimmy', 2023, 105000000, 'Campero', 'Si'
+
+
+select *
+from Vehiculo
+
+-- P.A para cambiar información de un vehiculo excepto la placa
+Create Proc spUpdateVehicle
+@Placa varchar(7),
+@Marca varchar(50),
+@Modelo varchar (30),
+@AñoVehiculo int,
+@Precio int,
+@Tipo varchar(10),
+@Disponibilidad Char(2)
+As
+Begin
+update Vehiculo set Marca = @Marca, Modelo = @Modelo, AñoVehiculo = @AñoVehiculo, Precio = @Precio, Tipo = @Tipo, Disponibilidad = @Disponibilidad
+Where Placa = @Placa
+End
+
+Execute spUpdateVehicle 'EMT132', 'Chevrolet', 'Onix', 2020, 41900000, 'Automovil', 'No'
+
+select *
+from Vehiculo
+
+
+-- P.A para eliminar un vehiculo
+create proc spDeleteVehicle
+@Placa varchar(7)
+As
+Begin
+Delete from Vehiculo where Placa = @Placa
+End
+
+
+Execute spDeleteVehicle 'QTR340'
+Execute spDeleteVehicle 'EWQ654'
+
+
+
+-- P.A. para recuperar un vehiculo
+Create Proc spSearchVehicle
+@Placa varchar(7)
+As
+Select * From Vehiculo Where Placa = @Placa
+
+Execute spSearchVehicle 'EMT132'
+
+
+-- P.A para recuperar todos los vehiculos
+Create Proc spAllVehicle
+As
+Select * From Vehiculo
+
+Execute spAllVehicle
+
+
+-- P.A para añadir un vehiculo a detalle de compra
+Create proc spAddDetalleDeCompra
+@Fecha smalldatetime,
+@NombreComprador varchar(50),
+@CedulaComprador varchar(20),
+@CelularComprador varchar(15),
+@Placa varchar(7),
+@Precio int
+As
+Begin
+insert into DetalleDeCompra (Fecha, NombreComprador, CedulaComprador, CelularComprador,placa, Precio) values
+(@Fecha, @NombreComprador, @CedulaComprador, @CelularComprador, @placa, @Precio)
+End
+
+
+
+execute spAddDetalleDeCompra '2025-01-12', 'Andres Zapata', '78987834', '3103424521', 'EST785', 145000000
+execute spAddDetalleDeCompra '2025-21-02', 'Isabella Rojas', '787823322', '3156763890', 'MMU212', 105000000
+
+select* from DetalleDeCompra
+
+
+-- P.A. Para cambiar datos de detalle de compra excepto el número de compra y la placa
+Create proc spUpdateDetalleDeCompra
+@NumCompra int,
+@Fecha smalldatetime,
+@NombreComprador varchar(50),
+@CedulaComprador varchar(20),
+@CelularComprador varchar(15),
+@Precio int
+As
+Begin
+update DetalleDeCompra set Fecha = @Fecha, NombreComprador = @NombreComprador, CedulaComprador = @CedulaComprador, CelularComprador = @CelularComprador, Precio = @Precio
+Where NumCompra = @NumCompra
+End
+
+
+
+Execute spUpdateDetalleDeCompra 14, '2025-22-02', 'Isabella Rojas' , '686262817', '3156768254', 35500000
+
+select* from DetalleDeCompra
+select*from vehiculo
+
+
+-- P.A para eliminar una compra
+create proc spDeleteDetalleDeCompra
+@NumCompra int
+As
+Begin
+Delete from DetalleDeCompra where NumCompra = @NumCompra
+End
+
+Execute spDeleteDetalleDeCompra 10
+
+
+-- P.A Para recuperar una venta por medio del número de compra
+Create procedure spSearchDetalleDeCompra
+@NumCompra int
+As
+Begin
+Select * from DetalleDeCompra where NumCompra = @NumCompra
+end
+
+execute spSearchDetalleDeCompra 12
+
+-- P.A. para recuperar todas las ventas
+Create procedure spAllDetalleDeCompra
+As
+Begin 
+Select * from DetalleDeCompra
+End
+
+execute spAllDetalleDeCompra
+
+
+
+
+
+
+
